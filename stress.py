@@ -7,6 +7,8 @@
 # %%
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+
 data = pd.read_csv("stress.csv")
 print(data.head())
 
@@ -28,7 +30,6 @@ from urllib.parse import urlparse
 nltk.download('stopwords')
 nltk.download('wordnet')
 ps = PorterStemmer()
-lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
 def clean(text):
@@ -50,7 +51,7 @@ def clean(text):
         tokens = word_tokenize(text)
         # Remove stopwords
         tokens = [word for word in tokens if word not in stop_words]
-        # Lemmatize tokens
+        # Stem tokens
         tokens = [ps.stem(word) for word in tokens]
 
         # Join tokens back into text
@@ -63,6 +64,32 @@ def clean(text):
 
 data["text"] = data["text"].apply(clean)
 
+
+# %%
+# Function to calculate lengths of sentences
+def calculate_sentence_lengths(text):
+    sentences = nltk.sent_tokenize(text)
+    sentence_lengths = [len(sentence) for sentence in sentences]
+    return sentence_lengths
+
+# Apply function to calculate sentence lengths
+data['sentence_lengths'] = data['text'].apply(calculate_sentence_lengths)
+
+# Filter by stress and no-stress categories (same as before)
+stressed_data = data[data['label'] == 1]
+non_stressed_data = data[data['label'] == 0]
+
+# Flatten sentence length lists for Stress and No-Stress
+flat_stressed_lengths = [length for sentence_lengths in stressed_data['sentence_lengths'] for length in sentence_lengths]
+flat_non_stressed_lengths = [length for sentence_lengths in non_stressed_data['sentence_lengths'] for length in sentence_lengths]
+
+# Box plots for comparison - adjusted for sentence lengths
+plt.figure(figsize=(10, 6))
+plt.boxplot([flat_stressed_lengths, flat_non_stressed_lengths], 
+            labels=['Stress', 'No Stress'])
+plt.ylabel('Sentence Length')  
+plt.title('Distribution of Sentence Lengths in Stress vs. No Stress Data')
+plt.show()
 
 # %% [markdown]
 # Word cloud showing most used words in the dataset:
@@ -105,13 +132,15 @@ wc = WordCloud(max_words = 2000 , width = 1600 , height = 800 , stopwords = stop
 plt.imshow(wc, interpolation = 'bilinear')
 
 # %%
-from sklearn.model_selection import train_test_split
+label_counts = data['label'].value_counts()
+print(label_counts) 
+label_counts.plot(kind='bar') 
+
 
 # %% [markdown]
 # Now I will split this dataset into training and test sets:
 
 # %%
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 
 x = np.array(data["text"])
@@ -171,6 +200,17 @@ print("Test set accuracy with best parameters:", svm_test_score)
 
 
 # %%
+from sklearn.metrics import confusion_matrix, classification_report
+
+y_pred = svm_best_model.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
+
+# %%
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression
 
@@ -207,6 +247,15 @@ print("Test set accuracy with best parameters:", log_test_score)
 
 
 # %%
+y_pred = log_best_model.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
+
+# %%
 from sklearn.naive_bayes import BernoulliNB
 
 # Define a list of alpha values to try
@@ -236,6 +285,17 @@ print("Top result - Alpha:", alpha, "Test set accuracy:", BNB_test_accuracy)
 for alpha, accuracy in results:
     print("Alpha:", alpha, "Test set accuracy:", accuracy)
 
+
+# %%
+bernoulli_nb = BernoulliNB(alpha=1)
+bernoulli_nb.fit(xtrain, ytrain)
+y_pred = bernoulli_nb.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
 
 # %%
 from sklearn.ensemble import RandomForestClassifier
@@ -275,6 +335,15 @@ print("Test set accuracy with best parameters:", RFC_test_score)
 
 
 # %%
+y_pred = RFC_best_model.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
+
+# %%
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import GridSearchCV
 
@@ -307,6 +376,15 @@ MNB_test_score = MNB_best_model.score(xtest, ytest)
 print("Train set accuracy with best parameters:", MNB_train_score)
 print("Test set accuracy with best parameters:", MNB_test_score)
 
+
+# %%
+y_pred = MNB_best_model.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
 
 # %%
 import numpy as np
@@ -366,6 +444,15 @@ voting_pred = voting_clf.predict(xtest)
 voting_accuracy = accuracy_score(ytest, voting_pred)
 print("Accuracy of Voting Classifier :", voting_accuracy)
 
+
+# %%
+y_pred = voting_clf.predict(xtest)  # Predictions on the test set
+
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+
+report = classification_report(ytest, y_pred)
+print(report)
 
 # %% [markdown]
 # Now let’s test the performance of our model on some random sentences based on mental health:

@@ -69,9 +69,7 @@ def clean(text):
         print("Error ", ex)
 
 def preprocess_input(text):
-    # Apply the same preprocessing steps as used for the training data
     processed_text = clean(text) 
-    # Vectorize the preprocessed input (you'll need to adapt this based on your vectorizer)
     vectorized_input = tf.transform([processed_text]) 
     return vectorized_input
 

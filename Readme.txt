@@ -1,0 +1,1 @@
+To run the Model, first run the stress.py and then type 'streamlit run app.py' in your terminal.
